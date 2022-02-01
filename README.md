@@ -1,3 +1,9 @@
+React Homework №4, task № 3 
+
+https://itfreshman2021.github.io/goit-react-hw-04-images/
+
+
+=================================================================================================================================================================================
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
