@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import s from './App.module.css';
 import { getImagesWithAxios } from '../services/getimageswithaxios';
 import Searchbar from './searchbar/Searchbar';
@@ -7,108 +7,95 @@ import ImageGallery from './imageGallery/ImageGallery';
 import Button from './button/Button';
 import Modal from './modal/Modal';
 
-class App extends React.Component {
-  state = {
-    searchName: '',
-    page: 1,
-    dataImages: [],
-    isLoading: false,
-    showModal: false,
-    largeImageURL: '',
-    alt: '',
-  };
+export default function App() {
+  const [searchName, setSearchName] = useState('');
+  const [page, setPage] = useState(1);
+  const [dataImages, setDataImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [alt, setAlt] = useState('');
 
-  componentDidUpdate(prevProps, prevState) {
+  useEffect(() => {
+    if (searchName === '') {
+      return;
+    }
+
     const config = {
       url: 'https://pixabay.com/api/',
       params: {
         key: '24632076-61665c6939d01412ec2d82576',
-        q: this.state.searchName,
+        q: searchName,
         image_type: 'photo',
         orientation: 'horizontal',
         safesearch: 'true',
         per_page: '12',
-        page: this.state.page,
+        page: page,
       },
     };
 
-    const prevSearchName = prevState.searchName;
-    const nextSearchName = this.state.searchName;
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
+    getImagesWithAxios(config).then(dataImages => {
+      if (!dataImages) {
+        setIsLoading(false);
+        return;
+      }
+      setDataImages(prevState => [...prevState, ...dataImages]);
+      setIsLoading(false);
 
-    if (prevSearchName !== nextSearchName || prevPage !== nextPage) {
-      getImagesWithAxios(config).then(dataImages => {
-        this.setState(prevState => ({
-          dataImages: [...prevState.dataImages, ...dataImages],
-          isLoading: false,
-        }));
-        if (nextPage > prevPage && prevSearchName === nextSearchName) {
-          const { height: cardHeight } = document
-            .querySelector('#ul1')
-            .lastElementChild.getBoundingClientRect();
-          window.scrollBy({
-            top: cardHeight * 2,
-            behavior: 'smooth',
-          });
-        }
-      });
-    }
-  }
-
-  handleFormSubmit = searchName => {
-    this.setState({
-      searchName: searchName,
-      page: 1,
-      dataImages: [],
-      showModal: false,
-      isLoading: true,
+      if (page > 1) {
+        const { height: cardHeight } = document
+          .querySelector('#ul1')
+          .lastElementChild.getBoundingClientRect();
+        window.scrollBy({
+          top: cardHeight * 2,
+          behavior: 'smooth',
+        });
+      }
     });
+  }, [searchName, page]);
+
+  const handleFormSubmit = searchName => {
+    setSearchName(searchName);
+    setPage(1);
+    setDataImages([]);
+    setShowModal(false);
+    setIsLoading(true);
   };
 
-  onButtonLoadMoreClick = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-      isLoading: true,
-    }));
+  const onButtonLoadMoreClick = () => {
+    setPage(prevState => prevState + 1);
+    setIsLoading(true);
   };
-  togleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
+  const togleModal = () => {
+    setShowModal(prevState => !prevState);
   };
 
-  handleModalImage = id => {
-    this.setState(prevState => ({
-      largeImageURL: prevState.dataImages.find(dataImage => dataImage.id === id).largeImageURL,
-      alt: prevState.dataImages.find(dataImage => dataImage.id === id).tags,
-    }));
+  const handleModalImage = id => {
+    setLargeImageURL(dataImages.find(dataImage => dataImage.id === id).largeImageURL);
+    setAlt(dataImages.find(dataImage => dataImage.id === id).tags);
 
-    this.togleModal();
+    togleModal();
   };
 
-  render() {
-    const { dataImages, isLoading, showModal, largeImageURL, alt } = this.state;
-    const { handleFormSubmit, onButtonLoadMoreClick, togleModal, handleModalImage } = this;
-    return (
-      <div className={s.App}>
-        <Searchbar onSubmit={handleFormSubmit} />
-        {isLoading && (
-          <div className={s.Loader}>
-            <Watch color="#00BFFF" height={80} width={80} />
-          </div>
-        )}
-        {showModal && <Modal onClose={togleModal} largeImageURL={largeImageURL} alt={alt} />}
-        {dataImages.length > 0 && (
-          <>
-            <ImageGallery onClick={handleModalImage} dataImages={dataImages} />
+  return (
+    <div className={s.App}>
+      <Searchbar onSubmit={handleFormSubmit} />
+      {isLoading && (
+        <div className={s.Loader}>
+          <Watch color="#00BFFF" height={80} width={80} />
+        </div>
+      )}
+      {showModal && <Modal onClose={togleModal} largeImageURL={largeImageURL} alt={alt} />}
+      {dataImages.length > 0 && (
+        <>
+          <ImageGallery onClick={handleModalImage} dataImages={dataImages} />
+          {!isLoading && (
             <div className={s.Btn}>
               <Button onButtonLoadMoreClick={onButtonLoadMoreClick} />
             </div>
-          </>
-        )}
-      </div>
-    );
-  }
+          )}
+        </>
+      )}
+    </div>
+  );
 }
-export default App;
